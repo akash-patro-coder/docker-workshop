@@ -3,31 +3,28 @@
 import pandas as pd
 from sqlalchemy import create_engine
 from tqdm.auto import tqdm
+import click
 
 
-def main():
-    # ---------------------------
-    # CONFIGURATION
-    # ---------------------------
-    pg_user = "postgres"       # use postgres to avoid permission issues
-    pg_pass = "postgres"
-    pg_host = "localhost"
-    pg_port = 5432
-    pg_db = "ny_taxi"
+@click.command()
+@click.option('--pg-user', default='postgres', help='PostgreSQL user')
+@click.option('--pg-pass', default='postgres', help='PostgreSQL password')
+@click.option('--pg-host', default='localhost', help='PostgreSQL host')
+@click.option('--pg-port', default=5432, type=int, help='PostgreSQL port')
+@click.option('--pg-db', default='ny_taxi', help='PostgreSQL database name')
+@click.option('--year', default=2021, type=int, help='Data year')
+@click.option('--month', default=1, type=int, help='Data month')
+@click.option('--target-table', default='yellow_taxi_data', help='Target table name')
+def run(pg_user, pg_pass, pg_host, pg_port, pg_db, year, month, target_table):
+    """Ingest NYC Yellow Taxi data into PostgreSQL"""
 
-    year = 2021
-    month = 1
-    table_name = "yellow_taxi_data"
     chunksize = 100_000
 
     prefix = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow"
     url = f"{prefix}/yellow_tripdata_{year}-{month:02d}.csv.gz"
 
-    print(f"Downloading data from: {url}")
+    click.echo(f"📥 Downloading data from: {url}")
 
-    # ---------------------------
-    # DATA TYPES
-    # ---------------------------
     dtype = {
         "VendorID": "Int64",
         "passenger_count": "Int64",
@@ -52,16 +49,10 @@ def main():
         "tpep_dropoff_datetime",
     ]
 
-    # ---------------------------
-    # DATABASE CONNECTION
-    # ---------------------------
     engine = create_engine(
         f"postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
     )
 
-    # ---------------------------
-    # LOAD DATA IN CHUNKS
-    # ---------------------------
     df_iter = pd.read_csv(
         url,
         dtype=dtype,
@@ -71,27 +62,25 @@ def main():
 
     first_chunk = True
 
-    for df_chunk in tqdm(df_iter, desc="Loading data to Postgres"):
+    for df_chunk in tqdm(df_iter, desc="🚀 Loading data to Postgres"):
         if first_chunk:
-            # Create table
             df_chunk.head(0).to_sql(
-                name=table_name,
+                name=target_table,
                 con=engine,
                 if_exists="replace",
                 index=False,
             )
             first_chunk = False
 
-        # Insert data
         df_chunk.to_sql(
-            name=table_name,
+            name=target_table,
             con=engine,
             if_exists="append",
             index=False,
         )
 
-    print("✅ Data load completed successfully")
+    click.echo("✅ Data load completed successfully")
 
 
 if __name__ == "__main__":
-    main()
+    run()

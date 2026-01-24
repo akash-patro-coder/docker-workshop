@@ -1146,6 +1146,7 @@ name = "pipeline"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "click" },
     { name = "pandas" },
     { name = "pgcli" },
     { name = "psycopg2-binary" },
@@ -1162,6 +1163,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "click", specifier = ">=8.1.7" },
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "pgcli", specifier = ">=4.4.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
